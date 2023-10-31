@@ -7,7 +7,7 @@ import matplotlib.font_manager as fm
 mpl.rcParams['axes.unicode_minus'] = False
 
 def adjusted_average_for_matrix(predictions):
-    # 예측값의 총 길이는 원래 데이터의 길이에 (6-1)를 더한 것입니다.
+    # The total length of the predicted values is the length of the original data plus (6-1).
     total_length = predictions.shape[0] + 5
     averaged_predictions = np.zeros(total_length)
     counts = np.zeros(total_length)
@@ -16,9 +16,9 @@ def adjusted_average_for_matrix(predictions):
         end_idx = start_idx + 6
         averaged_predictions[start_idx:end_idx] += window_preds
         counts[start_idx:end_idx] += 1
-    # 겹치는 부분에 대한 평균값을 계산합니다.
+    # Calculate the average value for overlapping parts.
     averaged_predictions /= counts
-    # 첫 5개와 마지막 5개의 예측값을 제외하고 반환합니다.
+    # Returns excluding the first 5 and last 5 predicted values.
     return averaged_predictions[5:-5]
 
 
