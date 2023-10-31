@@ -190,9 +190,13 @@ class Dataset_ETT_minute(Dataset):
 
 
 class Dataset_Custom(Dataset):
+    # def __init__(self, root_path, flag='train', size=None,
+    #              features='S', data_path='ETTh1.csv',
+    #              target='OT', scale=True, timeenc=0, freq='h', train_only=False):
     def __init__(self, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, timeenc=0, freq='h', train_only=False):
+                 target='OT', scale=False, timeenc=0, freq='h', train_only=False):
+    
         # size [seq_len, label_len, pred_len]
         # info
         if size == None:
@@ -220,25 +224,49 @@ class Dataset_Custom(Dataset):
         self.__read_data__()
 
     def __read_data__(self):
-        self.scaler = StandardScaler()
+      #  self.scaler = StandardScaler()
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
+        
+        #pre-processing
+        df_raw['Measure_Date'] = df_raw['Measure_Date'].astype(str)
+        df_raw['Measure_Time'] = df_raw['Measure_Time'].astype(str)
 
+        df_raw['Measure_Time'] = df_raw['Measure_Time'].str.zfill(6)
+
+        df_raw['date'] = pd.to_datetime(df_raw['Measure_Date'] + df_raw['Measure_Time'], format='%Y%m%d%H%M%S')
+
+        df_raw = df_raw.drop(columns=['Measure_Date', 'Measure_Time'])
+ #       df_raw = df_raw.drop(columns=['Measure_Date', 'Measure_Time', 'X_coordinate_avg', 'Y_coordinate_avg', 'Z_coordinate_avg', 'Total_coordinate_avg'])
+ #       df_raw = df_raw.drop(columns=['Measure_Date', 'Measure_Time', 'Gastro_Temperature'])
+        
+        print(df_raw)
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''
+        
+        
         cols = list(df_raw.columns)
+        
+        print(cols)
         if self.features == 'S':
             cols.remove(self.target)
         cols.remove('date')
         # print(cols)
         num_train = int(len(df_raw) * (0.7 if not self.train_only else 1))
+#        num_train = int(len(df_raw) * (1.0 if not self.train_only else 1))
         num_test = int(len(df_raw) * 0.2)
-        num_vali = len(df_raw) - num_train - num_test
+#        num_vali = len(df_raw) - num_train - num_test
+        num_vali = int(len(df_raw) * 0.1)
         border1s = [0, num_train - self.seq_len, len(df_raw) - num_test - self.seq_len]
         border2s = [num_train, num_train + num_vali, len(df_raw)]
         border1 = border1s[self.set_type]
         border2 = border2s[self.set_type]
+        
+        
+        #임시 테스트용 경계선
+        # border1 = 0
+        # border2 = 6144
 
         if self.features == 'M' or self.features == 'MS':
             df_raw = df_raw[['date'] + cols]
@@ -296,7 +324,7 @@ class Dataset_Custom(Dataset):
 class Dataset_Pred(Dataset):
     def __init__(self, root_path, flag='pred', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, inverse=False, timeenc=0, freq='15min', cols=None, train_only=False):
+                 target='OT', scale=False, inverse=False, timeenc=0, freq='15min', cols=None, train_only=False):
         # size [seq_len, label_len, pred_len]
         # info
         if size == None:
@@ -322,9 +350,19 @@ class Dataset_Pred(Dataset):
         self.__read_data__()
 
     def __read_data__(self):
-        self.scaler = StandardScaler()
+#        self.scaler = StandardScaler()
         df_raw = pd.read_csv(os.path.join(self.root_path,
                                           self.data_path))
+        
+        df_raw['Measure_Date'] = df_raw['Measure_Date'].astype(str)
+        df_raw['Measure_Time'] = df_raw['Measure_Time'].astype(str)
+
+        df_raw['Measure_Time'] = df_raw['Measure_Time'].str.zfill(6)
+
+        df_raw['date'] = pd.to_datetime(df_raw['Measure_Date'] + df_raw['Measure_Time'], format='%Y%m%d%H%M%S')
+
+        df_raw = df_raw.drop(columns=['Measure_Date', 'Measure_Time'])
+        
         '''
         df_raw.columns: ['date', ...(other features), target feature]
         '''

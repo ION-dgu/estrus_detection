@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser(description='Autoformer & Transformer family fo
 # basic config
 parser.add_argument('--is_training', type=int, required=True, default=1, help='status')
 parser.add_argument('--train_only', type=bool, required=False, default=False, help='perform training on full input dataset without validation and testing')
-parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
+#parser.add_argument('--model_id', type=str, required=True, default='test', help='model id')
+parser.add_argument('--model_id', type=str, required=True, default='pred', help='model id')
 parser.add_argument('--model', type=str, required=True, default='Autoformer',
                     help='model name, options: [Autoformer, Informer, Transformer]')
 
@@ -23,16 +24,17 @@ parser.add_argument('--model', type=str, required=True, default='Autoformer',
 parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
 parser.add_argument('--root_path', type=str, default='./data/ETT/', help='root path of the data file')
 parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
-parser.add_argument('--features', type=str, default='M',
+parser.add_argument('--features', type=str, default='MS',
                     help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
-parser.add_argument('--target', type=str, default='OT', help='target feature in S or MS task')
+#parser.add_argument('--target', type=str, default='OT', help='target feature in S or MS task')
+parser.add_argument('--target', type=str, default='MS', help='target feature in S or MS task')
 parser.add_argument('--freq', type=str, default='h',
                     help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
-parser.add_argument('--label_len', type=int, default=48, help='start token length')
+parser.add_argument('--label_len', type=int, default=6, help='start token length')
 parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
 
 
@@ -58,13 +60,16 @@ parser.add_argument('--embed', type=str, default='timeF',
                     help='time features encoding, options:[timeF, fixed, learned]')
 parser.add_argument('--activation', type=str, default='gelu', help='activation')
 parser.add_argument('--output_attention', action='store_true', help='whether to output attention in ecoder')
+#parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
 parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
 
 # optimization
 parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
 parser.add_argument('--itr', type=int, default=2, help='experiments times')
-parser.add_argument('--train_epochs', type=int, default=10, help='train epochs')
-parser.add_argument('--batch_size', type=int, default=32, help='batch size of train input data')
+#parser.add_argument('--train_epochs', type=int, default=10, help='train epochs')
+parser.add_argument('--train_epochs', type=int, default=100, help='train epochs')
+#parser.add_argument('--batch_size', type=int, default=3, help='batch size of train input data')
+parser.add_argument('--batch_size', type=int, default=150, help='batch size of train input data')
 parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
 parser.add_argument('--des', type=str, default='test', help='exp description')

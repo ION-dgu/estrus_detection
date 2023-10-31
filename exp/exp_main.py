@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from torch import optim
+from sklearn.metrics import *
 
 import os
 import time
@@ -102,6 +103,7 @@ class Exp_Main(Exp_Basic):
             vali_data, vali_loader = self._get_data(flag='val')
             test_data, test_loader = self._get_data(flag='test')
 
+        preds = []
         path = os.path.join(self.args.checkpoints, setting)
         if not os.path.exists(path):
             os.makedirs(path)
@@ -166,6 +168,8 @@ class Exp_Main(Exp_Basic):
                     outputs = outputs[:, -self.args.pred_len:, f_dim:]
                     batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
                     loss = criterion(outputs, batch_y)
+                    outputs = outputs.detach().cpu().numpy()
+                    preds.append(outputs)
                     train_loss.append(loss.item())
 
                 if (i + 1) % 100 == 0:
@@ -203,6 +207,13 @@ class Exp_Main(Exp_Basic):
                 break
 
             adjust_learning_rate(model_optim, epoch + 1, self.args)
+        
+        
+        folder_path = './train_results/'
+        
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        np.save(folder_path + 'pred.npy', preds)
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
@@ -211,6 +222,7 @@ class Exp_Main(Exp_Basic):
 
     def test(self, setting, test=0):
         test_data, test_loader = self._get_data(flag='test')
+        
         
         if test:
             print('loading model')
@@ -268,11 +280,15 @@ class Exp_Main(Exp_Basic):
                 preds.append(pred)
                 trues.append(true)
                 inputx.append(batch_x.detach().cpu().numpy())
-                if i % 20 == 0:
-                    input = batch_x.detach().cpu().numpy()
-                    gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
-                    pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
-                    visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
+                # if i % 20 == 0:
+                #     input = batch_x.detach().cpu().numpy()
+                #     gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
+                #     pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+                #     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
+                input = batch_x.detach().cpu().numpy()
+                gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
+                pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+                visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
 
         if self.args.test_flop:
             test_params_flop((batch_x.shape[1],batch_x.shape[2]))
@@ -281,14 +297,57 @@ class Exp_Main(Exp_Basic):
         preds = np.concatenate(preds, axis=0)
         trues = np.concatenate(trues, axis=0)
         inputx = np.concatenate(inputx, axis=0)
-
+        
+        gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
+        pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+        visual(gt, pd, os.path.join(folder_path, str(i) + '_output.pdf'))
+        preds_p = np.ravel(preds, order='C')
+        preds_p = preds.reshape(-1)
+        
+        plt.plot(preds_p)
+        plt.savefig('preds.png')
+        
+        np.putmask(preds, preds <= 0.8, 0.0)
+        np.putmask(preds, preds > 0.8, 1.0)
+        
         # result save
         folder_path = './results/' + setting + '/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
         mae, mse, rmse, mape, mspe, rse, corr = metric(preds, trues)
-        print('mse:{}, mae:{}'.format(mse, mae))
+        
+        TP = 0
+        TN = 0
+        FP = 0
+        FN = 0
+        
+        for i in range(preds.size):
+            pr = np.take(preds, i)
+            tr = np.take(trues, i)
+#         # for i in range((test.size-218300)):
+#         #     pr = np.take(test, i+218300)
+#         #     tr = np.take(test1, i+218300)
+            if pr == tr:
+                if pr == 1.0:
+                    TP = TP + 1
+                else:
+                    TN = TN + 1
+            else:
+                if pr == 1.0:
+                    FP = FP + 1
+                else:
+                    FN = FN + 1
+        
+        acc = (TP+TN)/(TP+TN+FP+FN)
+        pre = (TP)/(TP+FP)
+        recall = (TP)/(TP+FN)
+        f1 = 2*(pre*recall)/(pre+recall)
+        
+#        print('preds:{}', preds)
+#        print('mse:{}, mae:{}'.format(mse, mae))
+        print('TP:{}, TN:{}, FP:{}, FN:{}'.format(TP,TN,FP,FN))
+        print('mse:{}, mae:{}, acc:{}, pre:{}, recall:{}, f1:{}'.format(mse, mae,acc,pre,recall,f1))
         f = open("result.txt", 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}, rse:{}, corr:{}'.format(mse, mae, rse, corr))
@@ -298,6 +357,7 @@ class Exp_Main(Exp_Basic):
 
         # np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe,rse, corr]))
         np.save(folder_path + 'pred.npy', preds)
+        np.save(folder_path + 'true.npy', trues)
         # np.save(folder_path + 'true.npy', trues)
         # np.save(folder_path + 'x.npy', inputx)
         return
