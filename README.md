@@ -60,23 +60,33 @@ Please remember to cite all the datasets and compared methods if you use them in
 
 scripts/EXP-LongForecasting/Linear 폴더 안에 train.sh, predict.sh 파일이 있습니다.
 
+
 첫 모델을 학습시킬 땐 train.sh 파일을 실행시켜주시면 됩니다.
+
 
 이미 학습된 모델이 있으시다면 predict.sh 파일을 실행시켜주시면 됩니다.
 
+
 실행은 전체 폴더에서 sh scripts/EXP-LongForecasting/Linear/실행파일.sh 를 입력하시면 가능합니다.
+
 
 # 소요시간
 
+
 위내온도, X,Y,Z,Total 가속도값 13개를 전부 활용해 모델을 학습할 시 소요되는 시간은 아래와 같았습니다.
+
 ![모든이미지_소요시간](https://github.com/ION-dgu/estrus_detection/blob/master/train_time.png)
 
+
 # 2 종류의 data
+
 
 위내온도, 활동량 2가지 데이터를 사용해 모델을 사용한다고 하여 사용한 데이터가 2개일때의 성능과 소요시간을 측정해봤습니다.
 
 ![소요시간](https://github.com/ION-dgu/estrus_detection/blob/master/train_time_2columns.png)
+
 ![성능](https://github.com/ION-dgu/estrus_detection/blob/master/result_2columns.png)
+
 
 # 예측 이미지
 
