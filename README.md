@@ -9,10 +9,15 @@ This repo is the official Pytorch implementation of LTSF-Linear: "[Are Transform
 ## Requirements
 
 numpy==1.19.5
+
 torch==1.9.0+cu111
+
 torchaudio==0.9.0
+
 torchvision==0.10.0+cu111
+
 pandas==1.1.5
+
 sklearn==0.24.2
 
 # The changed source files and contents are below.
