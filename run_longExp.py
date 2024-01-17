@@ -22,21 +22,23 @@ parser.add_argument('--model', type=str, required=True, default='Autoformer',
 
 # data loader
 parser.add_argument('--data', type=str, required=True, default='ETTm1', help='dataset type')
+#sh파일에서 따로 설정
 parser.add_argument('--root_path', type=str, default='./data/ETT/', help='root path of the data file')
 parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')
 parser.add_argument('--features', type=str, default='MS',
                     help='forecasting task, options:[M, S, MS]; M:multivariate predict multivariate, S:univariate predict univariate, MS:multivariate predict univariate')
-#parser.add_argument('--target', type=str, default='OT', help='target feature in S or MS task')
 parser.add_argument('--target', type=str, default='MS', help='target feature in S or MS task')
-parser.add_argument('--freq', type=str, default='h',
+#predict 예측 단위, 15min으로 설정 시 15분 단위, h는 1시간 단위, 현재 1시간 단위로 설정
+#test시에만 10분 단위로 예측, predict에선 1시간 단위로 예측하도록 설정해놨음
+parser.add_argument('--freq', type=str, default='10m',
                     help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
+#모델 파일 생성 경로
 parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 
 # forecasting task
 parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
 parser.add_argument('--label_len', type=int, default=6, help='start token length')
 parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
-
 
 # DLinear
 parser.add_argument('--individual', action='store_true', default=False, help='DLinear: a linear layer for each variate(channel) individually')
@@ -60,15 +62,15 @@ parser.add_argument('--embed', type=str, default='timeF',
                     help='time features encoding, options:[timeF, fixed, learned]')
 parser.add_argument('--activation', type=str, default='gelu', help='activation')
 parser.add_argument('--output_attention', action='store_true', help='whether to output attention in ecoder')
-#parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
-parser.add_argument('--do_predict', action='store_true', help='whether to predict unseen future data')
+#predict
+parser.add_argument('--do_predict', type=bool, default=True, help='whether to predict unseen future data')
+
 
 # optimization
+#최적화 관련 parameter, 수정 시 학습 영향
 parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
 parser.add_argument('--itr', type=int, default=2, help='experiments times')
-#parser.add_argument('--train_epochs', type=int, default=10, help='train epochs')
 parser.add_argument('--train_epochs', type=int, default=100, help='train epochs')
-#parser.add_argument('--batch_size', type=int, default=3, help='batch size of train input data')
 parser.add_argument('--batch_size', type=int, default=150, help='batch size of train input data')
 parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
 parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
@@ -78,6 +80,7 @@ parser.add_argument('--lradj', type=str, default='type1', help='adjust learning 
 parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
 
 # GPU
+#GPU 설정
 parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
 parser.add_argument('--gpu', type=int, default=0, help='gpu')
 parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
@@ -99,9 +102,12 @@ print(args)
 
 Exp = Exp_Main
 
+# is_training이란 변수가 값이 1이라면 실행되는 코드, 처음 모델을 학습시킬 때 작동
+# 예측만 하고자 한다면 sh파일에서 is_training 변수를 0으로 설정하면 실행되지 않음
 if args.is_training:
     for ii in range(args.itr):
         # setting record of experiments
+        # 입력 값을 바탕으로 setting, setting 변수 안에 들어가는 '{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_dt{}_{}_{}' 폼이 모델 이름이 됨
         setting = '{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_dt{}_{}_{}'.format(
             args.model_id,
             args.model,
@@ -124,16 +130,18 @@ if args.is_training:
         print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
         exp.train(setting)
 
+        # train_only라는 변수가 있음, 데이터를 80:20으로 분할해서 테스팅을 거치지않고 모두 학습에 사용하고 싶으면 train_only를 sh파일에서 변경
         if not args.train_only:
             print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
             exp.test(setting)
 
-        if args.do_predict:
-            print('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-            exp.predict(setting, True)
+        # if args.do_predict:
+        #     print('>>>>>>>predicting : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+        #     exp.predict(setting, True)
 
         torch.cuda.empty_cache()
 else:
+    # 학습 X, 예측 or test
     ii = 0
     setting = '{}_{}_{}_ft{}_sl{}_ll{}_pl{}_dm{}_nh{}_el{}_dl{}_df{}_fc{}_eb{}_dt{}_{}_{}'.format(args.model_id,
                                                                                                   args.model,

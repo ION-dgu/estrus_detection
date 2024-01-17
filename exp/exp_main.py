@@ -1,6 +1,6 @@
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
-from models import Informer, Autoformer, Transformer, DLinear, Linear, NLinear
+from models import DLinear, Linear, NLinear
 from utils.tools import EarlyStopping, adjust_learning_rate, visual, test_params_flop
 from utils.metrics import metric
 
@@ -26,9 +26,6 @@ class Exp_Main(Exp_Basic):
 
     def _build_model(self):
         model_dict = {
-            'Autoformer': Autoformer,
-            'Transformer': Transformer,
-            'Informer': Informer,
             'DLinear': DLinear,
             'NLinear': NLinear,
             'Linear': Linear,
@@ -307,16 +304,23 @@ class Exp_Main(Exp_Basic):
         plt.plot(preds_p)
         plt.savefig('preds.png')
         
-        np.putmask(preds, preds <= 0.8, 0.0)
-        np.putmask(preds, preds > 0.8, 1.0)
+        # threshold 설정
+        result_threshold = 0.8
+        
+        # 발정 예측값이 threshold 이상일 경우 1.0으로 치환
+        np.putmask(preds, preds <= result_threshold, 0.0)
+        np.putmask(preds, preds > result_threshold, 1.0)
         
         # result save
         folder_path = './results/' + setting + '/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
+        # 사용하지 않은 기타 성능 지표들
         mae, mse, rmse, mape, mspe, rse, corr = metric(preds, trues)
         
+        
+        # Confusion matrix 값 계산
         TP = 0
         TN = 0
         FP = 0
@@ -325,9 +329,6 @@ class Exp_Main(Exp_Basic):
         for i in range(preds.size):
             pr = np.take(preds, i)
             tr = np.take(trues, i)
-#         # for i in range((test.size-218300)):
-#         #     pr = np.take(test, i+218300)
-#         #     tr = np.take(test1, i+218300)
             if pr == tr:
                 if pr == 1.0:
                     TP = TP + 1
@@ -344,8 +345,6 @@ class Exp_Main(Exp_Basic):
         recall = (TP)/(TP+FN)
         f1 = 2*(pre*recall)/(pre+recall)
         
-#        print('preds:{}', preds)
-#        print('mse:{}, mae:{}'.format(mse, mae))
         print('TP:{}, TN:{}, FP:{}, FN:{}'.format(TP,TN,FP,FN))
         print('mse:{}, mae:{}, acc:{}, pre:{}, recall:{}, f1:{}'.format(mse, mae,acc,pre,recall,f1))
         f = open("result.txt", 'a')
@@ -358,8 +357,8 @@ class Exp_Main(Exp_Basic):
         # np.save(folder_path + 'metrics.npy', np.array([mae, mse, rmse, mape, mspe,rse, corr]))
         np.save(folder_path + 'pred.npy', preds)
         np.save(folder_path + 'true.npy', trues)
-        # np.save(folder_path + 'true.npy', trues)
-        # np.save(folder_path + 'x.npy', inputx)
+ 
+        
         return
 
     def predict(self, setting, load=False):
